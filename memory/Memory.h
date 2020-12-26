@@ -1,4 +1,12 @@
 #pragma once
+#ifndef memory_API
+#ifdef memory_EXPORTS
+#define memory_API __declspec(dllexport)
+#else
+#define memory_API __declspec(dllimport)
+#endif
+#endif
+
 #include "ThreadSafeAddressMap.h"
 #include <vector>
 #include <functional>
@@ -40,15 +48,16 @@ using byte = unsigned char;
 // http://stackoverflow.com/q/36018838
 // http://stackoverflow.com/q/1387064
 // https://github.com/fkloiber/witness-trainer/blob/master/source/foreign_process_memory.cpp
-class Memory {
+class memory_API Memory {
 // Virtual class members which do platform-specific memory management
 public:
     virtual __int64 GetModuleBaseAddress(const std::wstring& moduleName) = 0;
 private:
-    virtual void ReadDataInternal(uintptr_t addr, void* buffer, size_t bufferSize) = 0;
+    virtual size_t ReadDataInternal(uintptr_t addr, void* buffer, size_t bufferSize) = 0;
     virtual void WriteDataInternal(uintptr_t addr, const void* buffer, size_t bufferSize) = 0;
-    virtual inline __int64 AllocateBuffer(size_t bufferSize, bool executable) = 0;
-    virtual inline void FreeBuffer(__int64 addr) = 0;
+    virtual __int64 AllocateBuffer(size_t bufferSize, bool executable) = 0;
+    virtual void FreeBuffer(__int64 addr) = 0;
+    virtual std::vector<std::pair<__int64, __int64>> GetMemoryPages() = 0;
 
 // Constructors
 public:
@@ -59,7 +68,7 @@ public:
     ~Memory();
     Memory(const Memory& other) = delete;
     Memory& operator=(const Memory& other) = delete;
-private:
+protected:
     Memory() = default;
 
 // Helper functions for reading and writing data
@@ -67,7 +76,8 @@ public:
     template<typename T>
     inline std::vector<T> ReadData(__int64 addr, size_t numItems) {
         std::vector<T> data(numItems, 0);
-        ReadDataInternal(addr, &data[0], numItems * sizeof(T));
+        size_t newSize = ReadDataInternal(addr, &data[0], numItems * sizeof(T));
+        data.resize(newSize);
         return data;
     }
     template<typename T>
@@ -107,13 +117,6 @@ public:
 
     void Intercept(const char* name, __int64 firstLine, __int64 nextLine, const std::vector<byte>& data);
     void Unintercept(__int64 firstLine, const std::vector<byte>& replacedCode, __int64 addr);
-private:
-    struct SigScan {
-        bool found = false;
-        ScanFunc scanFunc;
-    };
-    std::map<std::vector<byte>, SigScan> _sigScans;
-    std::vector<std::tuple<__int64, std::vector<byte>, __int64>> _interceptions;
 
 // Generic class members
 protected:

@@ -1,14 +1,27 @@
 #include "Memory.h"
-#include <psapi.h>
-#include <tlhelp32.h>
+#include <Utils.h>
 #include <sstream>
 #include <iomanip>
+#include <cassert>
+
+#if _WIN32
+#include "Memory_Win.h"
+#endif
+
+struct SigScan {
+    bool found = false;
+    Memory::ScanFunc scanFunc;
+};
+std::map<std::vector<byte>, SigScan> _sigScans;
+std::vector<std::tuple<__int64, std::vector<byte>, __int64>> _interceptions;
 
 std::shared_ptr<Memory> Memory::Create(const std::wstring& processName) {
-    auto memory = std::shared_ptr<Memory>(new Memory());
+#if _WIN32
+    std::shared_ptr<Memory> memory = std::shared_ptr<Memory_Win>(new Memory_Win());
+#endif
     if (!memory->Init(processName)) return nullptr;
 
-    memory->_sigScans.clear();
+    _sigScans.clear();
     return memory;
 }
 
@@ -71,23 +84,17 @@ size_t Memory::ExecuteSigScans() {
         if (!it.second.found) notFound++;
     }
 
-    MEMORY_BASIC_INFORMATION memoryInfo;
-    __int64 baseAddress = 0;
-    while (VirtualQueryEx(_handle, (void*)baseAddress, &memoryInfo, sizeof(memoryInfo))) {
-        baseAddress = (__int64)memoryInfo.BaseAddress + memoryInfo.RegionSize;
-        if (memoryInfo.State & MEM_FREE) continue;
+    for (const auto& it : GetMemoryPages()) {
+        __int64 pageBase = it.first;
+        __int64 pageSize = it.second;
 
-        std::vector<byte> buff;
-        buff.resize(memoryInfo.RegionSize);
-        SIZE_T numBytesWritten;
-        if (!ReadProcessMemory(_handle, (void*)((__int64)memoryInfo.BaseAddress), &buff[0], buff.size(), &numBytesWritten)) continue;
-        buff.resize(numBytesWritten);
+        std::vector<byte> buff = ReadData<byte>(pageBase, pageSize);
 
         for (auto& it : _sigScans) {
             if (it.second.found) continue;
             int index = find(buff, it.first);
             if (index == -1) continue;
-            it.second.scanFunc((__int64)memoryInfo.BaseAddress + index, buff);
+            it.second.scanFunc(pageBase + index, buff);
             it.second.found = true;
             notFound--;
         }
@@ -144,8 +151,8 @@ void Memory::Intercept(const char* name, __int64 firstLine, __int64 nextLine, co
     injectionBytes.insert(injectionBytes.end(), jumpBack.begin(), jumpBack.end());
 
     __int64 addr = AllocateBuffer(injectionBytes.size(), true);
-    DebugPrint(name + " Source address: " + DebugUtils::ToString(firstLine));
-    DebugPrint(name + " Injection address: " + DebugUtils::ToString(addr));
+    DebugPrint(std::string(name) + " Source address: " + ToString(firstLine));
+    DebugPrint(std::string(name) + " Injection address: " + ToString(addr));
     WriteData<byte>(addr, injectionBytes);
 
     std::vector<byte> jumpAway = {
