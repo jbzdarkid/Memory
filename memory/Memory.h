@@ -3,7 +3,7 @@
 #ifdef memory_EXPORTS
 #define memory_API __declspec(dllexport)
 #else
-#define memory_API __declspec(dllimport)
+#define memory_API /*__declspec(dllimport)*/
 #endif
 #endif
 

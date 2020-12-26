@@ -1,4 +1,7 @@
 #pragma once
+#undef assert
+#define assert
+
 #include <string>
 
 void DebugPrint(const std::wstring& message);

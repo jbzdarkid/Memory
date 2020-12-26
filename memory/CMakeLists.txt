@@ -1,4 +1,4 @@
-add_library(memory SHARED)
+add_library(memory)
 
 target_include_directories(memory PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

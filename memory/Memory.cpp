@@ -89,6 +89,7 @@ size_t Memory::ExecuteSigScans() {
         __int64 pageSize = it.second;
 
         std::vector<byte> buff = ReadData<byte>(pageBase, pageSize);
+        if (buff.empty()) continue;
 
         for (auto& it : _sigScans) {
             if (it.second.found) continue;

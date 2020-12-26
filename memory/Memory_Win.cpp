@@ -50,7 +50,7 @@ size_t Memory_Win::ReadDataInternal(uintptr_t addr, void* buffer, size_t bufferS
     // Ensure that the buffer size does not cause a read across a page boundary.
     MEMORY_BASIC_INFORMATION memoryInfo;
     VirtualQueryEx(_handle, (void*)addr, &memoryInfo, sizeof(memoryInfo));
-    assert(!(memoryInfo.State & MEM_FREE));
+    assert(!(memoryInfo.State & MEM_FREE)); // Attempting to read freed memory (likely indicates a bad address)
     __int64 endOfPage = (__int64)memoryInfo.BaseAddress + memoryInfo.RegionSize;
     if (bufferSize > endOfPage - addr) {
         bufferSize = endOfPage - addr;
@@ -89,8 +89,8 @@ std::vector<std::pair<__int64, __int64>> Memory_Win::GetMemoryPages() {
     __int64 baseAddress = 0;
     while (VirtualQueryEx(_handle, (void*)baseAddress, &memoryInfo, sizeof(memoryInfo))) {
         baseAddress = (__int64)memoryInfo.BaseAddress + memoryInfo.RegionSize;
-        if (memoryInfo.State & MEM_FREE) continue;
-        memoryPages.emplace_back(baseAddress, memoryInfo.RegionSize);
+        if (memoryInfo.State & MEM_FREE) continue; // Page represents free memory
+        memoryPages.emplace_back((__int64)memoryInfo.BaseAddress, (__int64)memoryInfo.RegionSize);
     }
     return memoryPages;
 }
