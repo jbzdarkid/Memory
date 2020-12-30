@@ -1,11 +1,4 @@
 #pragma once
-#ifndef memory_API
-#ifdef memory_EXPORTS
-#define memory_API __declspec(dllexport)
-#else
-#define memory_API __declspec(dllimport)
-#endif
-#endif
 
 #include "HazardPointer.h"
 #include <atomic>
@@ -14,7 +7,7 @@
 // Thread-safe map (from Andrei Alexandrescu and Maged Michael)
 // http://erdani.com/publications/cuj-2004-12.pdf
 
-class memory_API ThreadSafeAddressMap {
+class ThreadSafeAddressMap {
 public:
     void Set(uintptr_t key, uintptr_t value);
     uintptr_t Find(uintptr_t key) const;

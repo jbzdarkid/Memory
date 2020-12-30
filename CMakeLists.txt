@@ -6,7 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_subdirectory(memory)
 
-# Sample code
-add_executable(sample_target target.cpp)
-add_executable(sample_attacker attacker.cpp)
-target_link_libraries(sample_attacker memory)
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
+    # Sample code
+    add_executable(sample_target target.cpp)
+    add_executable(sample_attacker attacker.cpp)
+    target_link_libraries(sample_attacker memory)
+endif()

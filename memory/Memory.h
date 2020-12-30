@@ -1,11 +1,4 @@
 #pragma once
-#ifndef memory_API
-#ifdef memory_EXPORTS
-#define memory_API __declspec(dllexport)
-#else
-#define memory_API /*__declspec(dllimport)*/
-#endif
-#endif
 
 #include "ThreadSafeAddressMap.h"
 #include <vector>
@@ -48,14 +41,14 @@ using byte = unsigned char;
 // http://stackoverflow.com/q/36018838
 // http://stackoverflow.com/q/1387064
 // https://github.com/fkloiber/witness-trainer/blob/master/source/foreign_process_memory.cpp
-class memory_API Memory {
+class Memory {
 // Virtual class members which do platform-specific memory management
 public:
     virtual __int64 GetModuleBaseAddress(const std::wstring& moduleName) = 0;
+    virtual __int64 AllocateBuffer(size_t bufferSize, bool executable) = 0;
 private:
     virtual size_t ReadDataInternal(uintptr_t addr, void* buffer, size_t bufferSize) = 0;
     virtual void WriteDataInternal(uintptr_t addr, const void* buffer, size_t bufferSize) = 0;
-    virtual __int64 AllocateBuffer(size_t bufferSize, bool executable) = 0;
     virtual void FreeBuffer(__int64 addr) = 0;
     virtual std::vector<std::pair<__int64, __int64>> GetMemoryPages() = 0;
 
