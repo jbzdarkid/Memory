@@ -9,8 +9,8 @@ int main(int argc, char** argv) {
         memory = Memory::Create("sample_target.exe");
     }
 
-    int a = memory->ReadData<int>(std::vector<int64_t>{0x16004}, 1)[0];
-    int b = memory->ReadData<int>(std::vector<int64_t>{0x16008}, 1)[0];
+    int a = memory->ReadData<int>(std::vector<int64_t>{0x16000}, 1)[0];
+    int b = memory->ReadData<int>(std::vector<int64_t>{0x16004}, 1)[0];
     std::cout << "a=" << a << " b=" << b << std::endl;
     std::string secret = memory->ReadString({0x16390});
     std::cout << "secret=" << secret << std::endl;
@@ -27,8 +27,7 @@ int main(int argc, char** argv) {
         std::cout << "A always equals B" << std::endl;
     }
 
-    std::cout << "Press enter to exit";
-    std::string _;
-    std::cin >> _;
+    std::cout << "Press any key to exit";
+    getchar();
     return 0;
 }
