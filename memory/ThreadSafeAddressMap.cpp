@@ -1,7 +1,7 @@
 #include "ThreadSafeAddressMap.h"
 
 using Map = std::map<uintptr_t, uintptr_t>;
-std::atomic<void*> _map = nullptr;
+std::atomic<void*> _map;
 
 void ThreadSafeAddressMap::Set(uintptr_t key, uintptr_t value) {
     Map* newMap = nullptr;

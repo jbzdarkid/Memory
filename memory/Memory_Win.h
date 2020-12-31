@@ -4,12 +4,12 @@
 #include "Psapi.h"
 #include "TlHelp32.h"
 
-class Memory_Win final : public Memory {
+class MemoryImpl final : public Memory {
 public:
-    [[nodiscard]] bool Init(const std::wstring& processName) override;
-    ~Memory_Win();
+    [[nodiscard]] bool Init(const std::string& processName) override;
+    ~MemoryImpl();
 
-    __int64 GetModuleBaseAddress(const std::wstring& moduleName) override;
+    __int64 GetModuleBaseAddress(const std::string& moduleName) override;
     __int64 AllocateBuffer(size_t bufferSize, bool executable) override;
 
 private:

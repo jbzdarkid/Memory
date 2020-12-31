@@ -2,5 +2,27 @@ add_library(memory)
 
 target_include_directories(memory PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-file(GLOB sources CONFIGURE_DEPENDS "*.cpp" "*.h")
-target_sources(memory PRIVATE ${sources} ${headers})
+target_sources(memory PRIVATE 
+    HazardPointer.cpp
+    HazardPointer.h
+    Memory.cpp
+    Memory.h
+    ThreadSafeAddressMap.cpp
+    ThreadSafeAddressMap.h
+    Utils.cpp
+    Utils.h
+)
+
+if(WIN32)
+    message("Building on Windows")
+    target_compile_definitions(memory PRIVATE MEMORY_PLATFORM_WINDOWS)
+    target_sources(memory PRIVATE Memory_Win.h Memory_Win.cpp)
+elseif(UNIX AND NOT APPLE)
+    message("Building on Linux")
+    target_compile_definitions(memory PRIVATE MEMORY_PLATFORM_LINUX)
+    target_sources(memory PRIVATE Memory_Linux.h Memory_Linux.cpp)
+elseif(UNIX AND APPLE)
+    message("Building on Mac")
+    target_compile_definitions(memory PRIVATE MEMORY_PLATFORM_MAC)
+    target_sources(memory PRIVATE Memory_Mac.h Memory_Mac.cpp)
+endif()

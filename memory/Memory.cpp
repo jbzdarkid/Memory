@@ -4,8 +4,11 @@
 #include <iomanip>
 #include <cassert>
 
-#if _WIN32
+#if MEMORY_PLATFORM_WINDOWS
 #include "Memory_Win.h"
+#elif MEMORY_PLATFORM_LINUX
+#include "Memory_Linux.h"
+#include <string.h>
 #endif
 
 struct SigScan {
@@ -13,12 +16,10 @@ struct SigScan {
     Memory::ScanFunc scanFunc;
 };
 std::map<std::vector<byte>, SigScan> _sigScans;
-std::vector<std::tuple<__int64, std::vector<byte>, __int64>> _interceptions;
+std::vector<std::tuple<int64_t, std::vector<byte>, int64_t>> _interceptions;
 
-std::shared_ptr<Memory> Memory::Create(const std::wstring& processName) {
-#if _WIN32
-    std::shared_ptr<Memory> memory = std::shared_ptr<Memory_Win>(new Memory_Win());
-#endif
+std::shared_ptr<Memory> Memory::Create(const std::string& processName) {
+    std::shared_ptr<Memory> memory = std::shared_ptr<MemoryImpl>(new MemoryImpl());
     if (!memory->Init(processName)) return nullptr;
 
     _sigScans.clear();
@@ -29,7 +30,7 @@ Memory::~Memory() {
     for (const auto& interception : _interceptions) Unintercept(std::get<0>(interception), std::get<1>(interception), std::get<2>(interception));
 }
 
-__int64 Memory::ReadStaticInt(__int64 offset, int index, const std::vector<byte>& data, size_t lineLength) {
+int64_t Memory::ReadStaticInt(int64_t offset, int index, const std::vector<byte>& data, size_t lineLength) {
     // (address of next line) + (index interpreted as 4byte int)
     return offset + index + lineLength + *(int*)&data[index];
 }
@@ -55,7 +56,10 @@ void Memory::AddSigScan(const std::string& scan, const ScanFunc& scanFunc) {
     }
     assert(first);
 
-    _sigScans[scanBytes] = {false, scanFunc};
+    struct SigScan s;
+    s.found = false;
+    s.scanFunc = scanFunc;
+    _sigScans[scanBytes] = s;
 }
 
 int find(const std::vector<byte>& data, const std::vector<byte>& search) {
@@ -85,8 +89,8 @@ size_t Memory::ExecuteSigScans() {
     }
 
     for (const auto& it : GetMemoryPages()) {
-        __int64 pageBase = it.first;
-        __int64 pageSize = it.second;
+        int64_t pageBase = it.first;
+        int64_t pageSize = it.second;
 
         std::vector<byte> buff = ReadData<byte>(pageBase, pageSize);
         if (buff.empty()) continue;
@@ -120,15 +124,15 @@ size_t Memory::ExecuteSigScans() {
 
 #define MAX_STRING 100
 // Technically this is ReadChar*, but this name makes more sense with the return type.
-std::string Memory::ReadString(std::vector<__int64> offsets) {
-    __int64 charAddr = ReadData<__int64>(offsets, 1)[0];
+std::string Memory::ReadString(std::vector<int64_t> offsets) {
+    int64_t charAddr = ReadData<int64_t>(offsets, 1)[0];
     if (charAddr == 0) return ""; // Handle nullptr for strings
 
     offsets.push_back(0L); // Dereference the char* to a char[]
     std::vector<char> tmp = ReadData<char>(offsets, MAX_STRING);
     std::string name(tmp.begin(), tmp.end());
     // Remove garbage past the null terminator (we read 100 chars, but the string was probably shorter)
-    name.resize(strnlen_s(tmp.data(), tmp.size()));
+    name.resize(strnlen(tmp.data(), tmp.size()));
     if (name.size() == tmp.size()) {
         DebugPrint("Buffer did not get shrunk, ergo this string is longer than 100 chars. Please change MAX_STRING.");
         assert(false);
@@ -136,7 +140,7 @@ std::string Memory::ReadString(std::vector<__int64> offsets) {
     return name;
 }
 
-void Memory::Intercept(const char* name, __int64 firstLine, __int64 nextLine, const std::vector<byte>& data) {
+void Memory::Intercept(const char* name, int64_t firstLine, int64_t nextLine, const std::vector<byte>& data) {
     std::vector<byte> jumpBack = {
         0x41, 0x53,                                 // push r11
         0x49, 0xBB, LONG_TO_BYTES(firstLine + 15),  // mov r11, firstLine + 15
@@ -151,7 +155,7 @@ void Memory::Intercept(const char* name, __int64 firstLine, __int64 nextLine, co
     injectionBytes.push_back(0x90); // Padding nop
     injectionBytes.insert(injectionBytes.end(), jumpBack.begin(), jumpBack.end());
 
-    __int64 addr = AllocateBuffer(injectionBytes.size(), true);
+    int64_t addr = AllocateBuffer(injectionBytes.size(), true);
     DebugPrint(std::string(name) + " Source address: " + ToString(firstLine));
     DebugPrint(std::string(name) + " Injection address: " + ToString(addr));
     WriteData<byte>(addr, injectionBytes);
@@ -172,20 +176,20 @@ void Memory::Intercept(const char* name, __int64 firstLine, __int64 nextLine, co
     _interceptions.emplace_back(firstLine, replacedCode, addr);
 }
 
-void Memory::Unintercept(__int64 firstLine, const std::vector<byte>& replacedCode, __int64 addr) {
+void Memory::Unintercept(int64_t firstLine, const std::vector<byte>& replacedCode, int64_t addr) {
     WriteData<byte>({firstLine}, replacedCode);
 }
 
-uintptr_t Memory::ComputeOffset(__int64 baseAddress, std::vector<__int64> offsets) {
+uintptr_t Memory::ComputeOffset(int64_t baseAddress, std::vector<int64_t> offsets) {
     assert(offsets.size() > 0);
     assert(offsets.front() != 0);
 
     // Leave off the last offset, since it will be either read/write, and may not be of type uintptr_t.
-    const __int64 final_offset = offsets.back();
+    const int64_t final_offset = offsets.back();
     offsets.pop_back();
 
     uintptr_t cumulativeAddress = baseAddress;
-    for (const __int64 offset : offsets) {
+    for (const int64_t offset : offsets) {
         cumulativeAddress += offset;
 
         // If the address was already computed, continue to the next offset.

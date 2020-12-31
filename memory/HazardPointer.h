@@ -32,7 +32,7 @@ private:
 
     struct Node final {
         void* ptr = nullptr;
-        std::atomic<bool> active = true;
+        std::atomic_bool active;
         Node* next = nullptr;
     };
     static std::atomic<Node*> s_head;

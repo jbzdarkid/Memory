@@ -43,6 +43,8 @@ HazardPointer::HazardPointer() {
 
     // Else, there are no free nodes, create a new one
     _node = new HazardPointer::Node();
+    _node->active = true;
+    // _node->active.compare_exchange_strong(expected,
     HazardPointer::Node* old;
     do {
         old = s_head.load();

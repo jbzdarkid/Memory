@@ -44,20 +44,20 @@ using byte = unsigned char;
 class Memory {
 // Virtual class members which do platform-specific memory management
 public:
-    virtual __int64 GetModuleBaseAddress(const std::wstring& moduleName) = 0;
-    virtual __int64 AllocateBuffer(size_t bufferSize, bool executable) = 0;
+    virtual int64_t GetModuleBaseAddress(const std::string& moduleName) = 0;
+    virtual int64_t AllocateBuffer(size_t bufferSize, bool executable) = 0;
 private:
     virtual size_t ReadDataInternal(uintptr_t addr, void* buffer, size_t bufferSize) = 0;
     virtual void WriteDataInternal(uintptr_t addr, const void* buffer, size_t bufferSize) = 0;
-    virtual void FreeBuffer(__int64 addr) = 0;
-    virtual std::vector<std::pair<__int64, __int64>> GetMemoryPages() = 0;
+    virtual void FreeBuffer(int64_t addr) = 0;
+    virtual std::vector<std::pair<int64_t, int64_t>> GetMemoryPages() = 0;
 
 // Constructors
 public:
     // Note that construction may fail, so you will need to call Create on a loop until it succeeds.
     // (I might write a helper for that?)
-    static std::shared_ptr<Memory> Create(const std::wstring& processName);
-    [[nodiscard]] virtual bool Init(const std::wstring& processName) = 0; // Platform-specific initialization
+    static std::shared_ptr<Memory> Create(const std::string& processName);
+    [[nodiscard]] virtual bool Init(const std::string& processName) = 0; // Platform-specific initialization
     ~Memory();
     Memory(const Memory& other) = delete;
     Memory& operator=(const Memory& other) = delete;
@@ -67,49 +67,49 @@ protected:
 // Helper functions for reading and writing data
 public:
     template<typename T>
-    inline std::vector<T> ReadData(__int64 addr, size_t numItems) {
+    inline std::vector<T> ReadData(int64_t addr, size_t numItems) {
         std::vector<T> data(numItems, 0);
         size_t newSize = ReadDataInternal(addr, &data[0], numItems * sizeof(T));
         data.resize(newSize);
         return data;
     }
     template<typename T>
-    inline std::vector<T> ReadData(const std::vector<__int64>& offsets, size_t numItems) {
+    inline std::vector<T> ReadData(const std::vector<int64_t>& offsets, size_t numItems) {
         return ReadData<T>(ComputeOffset(_baseAddress, offsets), numItems);
     }
     template<typename T>
-    inline std::vector<T> ReadData(const std::wstring& moduleName, const std::vector<__int64>& offsets, size_t numItems) {
+    inline std::vector<T> ReadData(const std::string& moduleName, const std::vector<int64_t>& offsets, size_t numItems) {
         return ReadData<T>(ComputeOffset(GetModuleBaseAddress(moduleName), offsets), numItems);
     }
-    std::string ReadString(std::vector<__int64> offsets);
+    std::string ReadString(std::vector<int64_t> offsets);
 
     template <typename T>
-    inline void WriteData(__int64 address, const std::vector<T>& data) {
+    inline void WriteData(int64_t address, const std::vector<T>& data) {
         WriteDataInternal(address, data.data(), sizeof(T) * data.size());
     }
     template <typename T>
-    inline void WriteData(const std::vector<__int64>& offsets, const std::vector<T>& data) {
+    inline void WriteData(const std::vector<int64_t>& offsets, const std::vector<T>& data) {
         WriteData<T>(ComputeOffset(_baseAddress, offsets), data);
     }
     template <typename T>
-    inline void WriteData(const std::wstring& moduleName, const std::vector<__int64>& offsets, const std::vector<T>& data) {
+    inline void WriteData(const std::string& moduleName, const std::vector<int64_t>& offsets, const std::vector<T>& data) {
         WriteData<T>(ComputeOffset(GetModuleBaseAddress(moduleName), offsets), data);
     }
 private:
-    uintptr_t ComputeOffset(__int64 baseAddress, std::vector<__int64> offsets);
+    uintptr_t ComputeOffset(int64_t baseAddress, std::vector<int64_t> offsets);
     ThreadSafeAddressMap _computedAddresses;
 
 // Helper functions for sigscanning
 public:
-    using ScanFunc = std::function<void(__int64 address, const std::vector<byte>& data)>;
+    using ScanFunc = std::function<void(int64_t address, const std::vector<byte>& data)>;
     void AddSigScan(const std::string& scan, const ScanFunc& scanFunc);
     [[nodiscard]] size_t ExecuteSigScans();
 
     // lineLength is the number of bytes from the given index to the end of the instruction. Usually, it's 4.
-    static __int64 ReadStaticInt(__int64 offset, int index, const std::vector<byte>& data, size_t lineLength = 4);
+    static int64_t ReadStaticInt(int64_t offset, int index, const std::vector<byte>& data, size_t lineLength = 4);
 
-    void Intercept(const char* name, __int64 firstLine, __int64 nextLine, const std::vector<byte>& data);
-    void Unintercept(__int64 firstLine, const std::vector<byte>& replacedCode, __int64 addr);
+    void Intercept(const char* name, int64_t firstLine, int64_t nextLine, const std::vector<byte>& data);
+    void Unintercept(int64_t firstLine, const std::vector<byte>& replacedCode, int64_t addr);
 
 // Generic class members
 protected:

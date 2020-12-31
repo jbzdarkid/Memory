@@ -8,7 +8,7 @@ void DebugPrint(const std::string& message)
 {
 }
 
-std::string ToString(__int64 addr)
+std::string ToString(int64_t addr)
 {
     return std::string();
 }
