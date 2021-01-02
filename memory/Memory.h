@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <cassert>
 
 using byte = unsigned char;
 // Note: Little endian
@@ -70,6 +71,7 @@ public:
     inline std::vector<T> ReadData(int64_t addr, size_t numItems) {
         std::vector<T> data(numItems, 0);
         size_t newSize = ReadDataInternal(addr, &data[0], numItems * sizeof(T));
+        assert(newSize >= 0);
         data.resize(newSize);
         return data;
     }

@@ -2,7 +2,8 @@
 #include <cassert>
 #include <Utils.h>
 
-[[nodiscard]] bool MemoryImpl::Init(const std::string& processName) {
+[[nodiscard]] bool MemoryImpl::Init(std::string processName) {
+    processName += ".exe";
     // First, get the handle of the process
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(entry);
@@ -15,7 +16,6 @@
         }
     }
     if (!_handle) return false;
-    DebugPrint("Found " + processName + ": PID " + std::to_string(_pid));
 
     DWORD unused;
     HMODULE modules[1];

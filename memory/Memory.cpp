@@ -21,6 +21,9 @@ std::vector<std::tuple<int64_t, std::vector<byte>, int64_t>> _interceptions;
 std::shared_ptr<Memory> Memory::Create(const std::string& processName) {
     std::shared_ptr<Memory> memory = std::shared_ptr<MemoryImpl>(new MemoryImpl());
     if (!memory->Init(processName)) return nullptr;
+    if (memory->_pid == 0) return nullptr;
+    if (memory->_baseAddress == 0) return nullptr;
+    DebugPrint("Found " + processName + ": PID=" + std::to_string(memory->_pid) + " BaseAddress=" + ToString(memory->_baseAddress));
 
     _sigScans.clear();
     return memory;

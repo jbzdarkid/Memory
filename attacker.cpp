@@ -6,8 +6,11 @@ int main(int argc, char** argv) {
     std::shared_ptr<Memory> memory;
     while (!memory) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        memory = Memory::Create("sample_target.exe");
+        memory = Memory::Create("sample_target");
     }
+
+    int q = memory->ReadData<int>(0x0, 1)[0];
+    std::cout << "q" << q << std::endl;
 
     int a = memory->ReadData<int>(std::vector<int64_t>{0x16000}, 1)[0];
     int b = memory->ReadData<int>(std::vector<int64_t>{0x16004}, 1)[0];

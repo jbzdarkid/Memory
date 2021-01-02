@@ -13,6 +13,9 @@ target_sources(memory PRIVATE
     Utils.h
 )
 
+add_executable(snoopy)
+target_sources(snoopy PRIVATE snoopy.cpp)
+
 if(WIN32)
     message("Building on Windows")
     target_compile_definitions(memory PRIVATE MEMORY_PLATFORM_WINDOWS)
@@ -20,7 +23,9 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     message("Building on Linux")
     target_compile_definitions(memory PRIVATE MEMORY_PLATFORM_LINUX)
-    target_sources(memory PRIVATE Memory_Linux.h Memory_Linux.cpp)
+    target_sources(memory PRIVATE snoopy.cpp Memory_Linux.h Memory_Linux.cpp)
+
+    target_compile_definitions(memory PRIVATE SNOOPY_MAIN=1)
 elseif(UNIX AND APPLE)
     message("Building on Mac")
     target_compile_definitions(memory PRIVATE MEMORY_PLATFORM_MAC)

@@ -4,10 +4,16 @@ import sys
 
 if __name__ == '__main__':
     Path('_build').mkdir(exist_ok=True)
-    # Path('_build/CMakeCache.txt').unlink(missing_ok=True)
+    if '--clean' in sys.argv[1:]:
+      Path('_build/CMakeCache.txt').unlink(missing_ok=True)
 
-    args = ['cmake', '..']
+    build_args = ['cmake', '..']
     if '--debug' in sys.argv[1:]:
-        args.append('-DCMAKE_BUILD_TYPE=Debug')
-    run(args, cwd='_build')
-    run(['cmake', '--build', '.', '--config', 'Debug'], cwd='_build')
+        build_args.append('-DCMAKE_BUILD_TYPE=Debug')
+    run(build_args, cwd='_build')
+
+    make_args = ['cmake', '--build', '_build', '--config', 'Debug']
+    run(make_args)
+
+    install_args = ['cmake', '--install', '_build', '--prefix', '_install', '--config', 'Debug']
+    run(install_args)
